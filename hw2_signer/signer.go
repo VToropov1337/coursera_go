@@ -30,12 +30,6 @@ func Worker(wgexec *sync.WaitGroup, Job job, in, out chan interface{}) {
 
 }
 
-func Md5(wg *sync.WaitGroup, data string) string {
-	defer wg.Done()
-	r := DataSignerMd5(data)
-	return r
-}
-
 func SingleHash(in, out chan interface{}) {
 	var wg sync.WaitGroup
 	for val := range in {
