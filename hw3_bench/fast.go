@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type User struct {
@@ -44,6 +45,7 @@ func FastSearch(out io.Writer) {
 
 	lines := strings.Split(string(fileContents), "\n")
 	var users Users
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	for _, line := range lines {
 		var user User
 		err := json.Unmarshal([]byte(line), &user)
