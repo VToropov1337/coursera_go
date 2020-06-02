@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strings"
 )
 
@@ -58,7 +57,7 @@ func FastSearch(out io.Writer) {
 		isAndroid := false
 		isMSIE := false
 		for _, browser := range v.Browsers {
-			if ok, err := regexp.MatchString("Android", browser); ok && err == nil {
+			if ok := strings.Contains(browser, "Android"); ok {
 				isAndroid = true
 				if InArray(seenBrowsers, browser) {
 					continue
@@ -68,7 +67,7 @@ func FastSearch(out io.Writer) {
 				}
 
 			}
-			if ok, err := regexp.MatchString("MSIE", browser); ok && err == nil {
+			if ok := strings.Contains(browser, "MSIE"); ok {
 				isMSIE = true
 				if InArray(seenBrowsers, browser) {
 					continue
