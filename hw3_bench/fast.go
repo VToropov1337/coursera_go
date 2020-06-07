@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	jsoniterator "github.com/json-iterator/go"
 )
 
 type User struct {
@@ -15,8 +15,6 @@ type User struct {
 	Email    string   `json:"email"`
 	Name     string   `json:"name"`
 }
-
-type Users []User
 
 func InArray(a []string, e string) bool {
 	for _, x := range a {
@@ -33,32 +31,26 @@ func FastSearch(out io.Writer) {
 	if err != nil {
 		panic(err)
 	}
+	defer file.Close()
 
-	fileContents, err := ioutil.ReadAll(file)
-	if err != nil {
-		panic(err)
-	}
-
-	seenBrowsers := []string{}
+	// seenBrowsers := []string{}
+	seenBrowsers := make([]string, 0, 1)
 	uniqueBrowsers := 0
 	foundUsers := ""
 
-	lines := strings.Split(string(fileContents), "\n")
-	var users Users
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	for _, line := range lines {
-		var user User
-		err := json.Unmarshal([]byte(line), &user)
+	var json = jsoniterator.ConfigCompatibleWithStandardLibrary
+	var user User
+	scanner := bufio.NewScanner(file)
+	var i int
+	for scanner.Scan() {
+
+		err := json.Unmarshal([]byte(scanner.Text()), &user)
 		if err != nil {
 			panic(err)
 		}
-		users = append(users, user)
-	}
-
-	for i, v := range users {
 		isAndroid := false
 		isMSIE := false
-		for _, browser := range v.Browsers {
+		for _, browser := range user.Browsers {
 			if ok := strings.Contains(browser, "Android"); ok {
 				isAndroid = true
 				if InArray(seenBrowsers, browser) {
@@ -82,10 +74,12 @@ func FastSearch(out io.Writer) {
 
 		}
 		if isMSIE && isAndroid {
-			v.Email = strings.Replace(v.Email, "@", " [at] ", 1)
-			foundUsers += fmt.Sprintf("[%d] %s <%s>\n", i, v.Name, v.Email)
+			user.Email = strings.Replace(user.Email, "@", " [at] ", 1)
+			foundUsers += fmt.Sprintf("[%d] %s <%s>\n", i, user.Name, user.Email)
 
 		}
+		i++
+
 	}
 
 	fmt.Fprintln(out, "found users:\n"+foundUsers)
