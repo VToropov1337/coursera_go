@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -69,6 +70,11 @@ func SearchServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if query == "__bad_users_marshalling" {
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, `{"status": 400`)
+	}
+
 	OrderField := r.FormValue("order_field")
 	if OrderField == "" {
 		OrderField = "Name"
@@ -121,6 +127,25 @@ func parseDataSet() {
 
 	}
 
+}
+
+func TestFindUsersBadMarshalling(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(SearchServer))
+	defer ts.Close()
+
+	client := &SearchClient{
+		URL: ts.URL,
+	}
+
+	_, err := client.FindUsers(SearchRequest{Limit: 10, Query: "__bad_users_marshalling"})
+
+	// if resp != nil {
+	// 	t.Errorf("Expected nil, got response: %v with err: %v", resp, err)
+	// }
+
+	if err != nil {
+		t.Errorf("Expected err, got nil : %v ", err)
+	}
 }
 
 func TestFindUsersTimeout(t *testing.T) {
@@ -355,3 +380,4 @@ func TestFindUsersZeroLimit(t *testing.T) {
 		t.Errorf("Expected nil, got: %v. ", resp)
 	}
 }
+
