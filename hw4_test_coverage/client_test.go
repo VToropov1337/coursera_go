@@ -137,13 +137,13 @@ func TestFindUsersBadMarshalling(t *testing.T) {
 		URL: ts.URL,
 	}
 
-	_, err := client.FindUsers(SearchRequest{Limit: 10, Query: "__bad_users_marshalling"})
+	resp, err := client.FindUsers(SearchRequest{Limit: 10, Query: "__bad_users_marshalling"})
 
-	// if resp != nil {
-	// 	t.Errorf("Expected nil, got response: %v with err: %v", resp, err)
-	// }
+	if resp != nil {
+		t.Errorf("Expected nil, got response: %v with err: %v", resp, err)
+	}
 
-	if err != nil {
+	if err == nil {
 		t.Errorf("Expected err, got nil : %v ", err)
 	}
 }
