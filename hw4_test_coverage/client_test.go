@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// go test -coverprofile=cover.out
+// go tool cover -html=cover.out -o cover.html
+
 type Row struct {
 	Name      string
 	Id        int    `xml:"id"`
@@ -55,8 +58,34 @@ func SearchServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if query == "__one_result" {
+		limit_users, _ := json.Marshal(users[:1])
+		w.WriteHeader(http.StatusOK)
+		w.Write(limit_users)
+	}
+
 	if query == "__bad_request" {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	OrderField := r.FormValue("order_field")
+	if OrderField == "" {
+		OrderField = "Name"
+	}
+
+	if OrderField == "someError" {
+		resp, _ := json.Marshal(SearchErrorResponse{"SomeAnotherError"})
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(resp)
+		return
+
+	}
+
+	if OrderField != "Id" && OrderField != "Age" && OrderField != "Name" {
+		resp, _ := json.Marshal(SearchErrorResponse{"ErrorBadOrderField"})
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(resp)
 		return
 	}
 
@@ -170,6 +199,20 @@ func TestFindUsersBadOrderField(t *testing.T) {
 	}
 }
 
+func TestFindUsersBadOrderFieldString(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(SearchServer))
+	defer ts.Close()
+
+	client := &SearchClient{
+		URL: ts.URL,
+	}
+
+	resp, err := client.FindUsers(SearchRequest{Limit: 20, OrderField: "someError", Query: "users"})
+	if resp != nil {
+		t.Errorf("Expected nil, got response: %v with err: %v", resp, err)
+	}
+}
+
 func TestFindUsersBadUnknownError(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(SearchServer))
 	defer ts.Close()
@@ -202,6 +245,27 @@ func TestFindUsersGoodCase(t *testing.T) {
 
 	if len(resp.Users) != 2 {
 		t.Errorf("Expected 2 users, got: %v. ", len(resp.Users))
+	}
+}
+
+func TestFindUsersPaginationOff(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(SearchServer))
+	defer ts.Close()
+
+	client := &SearchClient{
+		URL: ts.URL,
+	}
+
+	resp, err := client.FindUsers(SearchRequest{Limit: 10, Query: "__one_result"})
+	if err != nil {
+		t.Errorf("Error: %v. ", err)
+	}
+	if resp == nil {
+		t.Errorf("Expected resp, got: %v. ", resp)
+	}
+
+	if len(resp.Users) != 1 {
+		t.Errorf("Expected 1 users, got: %v. ", len(resp.Users))
 	}
 }
 
@@ -266,7 +330,7 @@ func TestFindUsersNegativeOffset(t *testing.T) {
 		URL: ts.URL,
 	}
 
-	resp, err := client.FindUsers(SearchRequest{Limit: 100, Offset: -1, Query: "users"})
+	resp, err := client.FindUsers(SearchRequest{Limit: 20, Offset: -1, Query: "users"})
 	if err == nil {
 		t.Errorf("Expected nil, got: %v. ", err)
 	}
@@ -291,4 +355,3 @@ func TestFindUsersZeroLimit(t *testing.T) {
 		t.Errorf("Expected nil, got: %v. ", resp)
 	}
 }
-
